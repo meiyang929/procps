@@ -573,7 +573,7 @@ typedef struct WIN_t {
 
         /* The default fields displayed and their order,
            if nothing is specified by the loser, oops user.
-           NOTE: 3.3.x rcfiles (RCF ids 'a'..'j') stored fieldscur as a
+           NOTE: 3.3.x RC files (RCF ids 'a'..'j') stored fieldscur as a
            compact byte string (DEF_FORMER/..). Each byte encodes a field
            using a legacy single-byte map (extended by RCF_PLUS_H/J) with
            the high bit marking "on" fields, limiting the total count.
