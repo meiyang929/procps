@@ -572,16 +572,24 @@ typedef struct WIN_t {
 #define FLD_ROWMAX  20
 
         /* The default fields displayed and their order,
-           if nothing is specified by the loser, oops user. */
+           if nothing is specified by the loser, oops user.
+           NOTE: 3.3.x RC files (RCF ids 'a'..'j') stored fieldscur as a
+           compact byte string (DEF_FORMER/..). Each byte encodes a field
+           using a legacy single-byte map (extended by RCF_PLUS_H/J) with
+           the high bit marking "on" fields, limiting the total count.
+           Since RCF_XFORMED_ID ('k') we store integer fieldscur entries
+           using ENUcvt(enum, FLDon/FLDoff), so DEF_FIELDS enumerates every
+           field (on/off) in display order; the list grows as new fields
+           are added, hence the longer sequence. */
 #ifdef ORIG_TOPDEFS
-#define DEF_FORMER  "¥¨³´»½ÀÄ·º¹Å&')*+,-./012568<>?ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
+#define DEF_FORMER  "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½&')*+,-./012568<>?ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
 #else
-#define DEF_FORMER  "¥&K¨³´»½@·º¹56ÄFÅ')*+,-./0128<>?ABCGHIJLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
+#define DEF_FORMER  "ï¿½&Kï¿½ï¿½ï¿½ï¿½ï¿½@ï¿½ï¿½ï¿½56ï¿½Fï¿½')*+,-./0128<>?ABCGHIJLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
 #endif
         /* Pre-configured windows/field groups */
-#define JOB_FORMER  "¥¦¹·º(³´Ä»½@<§Å)*+,-./012568>?ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
-#define MEM_FORMER  "¥º»<½¾¿ÀÁMBNÃD34·Å&'()*+,-./0125689FGHIJKLOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
-#define USR_FORMER  "¥¦§¨ª°¹·ºÄÅ)+,-./1234568;<=>?@ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
+#define JOB_FORMER  "ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½Ä»ï¿½@<ï¿½ï¿½)*+,-./012568>?ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
+#define MEM_FORMER  "ï¿½ï¿½ï¿½<ï¿½ï¿½ï¿½ï¿½ï¿½MBNï¿½D34ï¿½ï¿½&'()*+,-./0125689FGHIJKLOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
+#define USR_FORMER  "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)+,-./1234568;<=>?@ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
         // old top fields ( 'a'-'z' ) in positions 0-25
         // other suse old top fields ( '{|' ) in positions 26-27
 #define CVT_FORMER  "%&*'(-0346789:;<=>?@ACDEFGML)+,./125BHIJKNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
