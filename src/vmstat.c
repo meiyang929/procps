@@ -962,7 +962,7 @@ static void kvm_format(void)
     if (!fp)
         err(EXIT_FAILURE, _("Unable to open %s"), kvm_stat_path);
 
-    while ((read_len = getline(&line, &line_len, fp)) > 0) {
+    while ((read_len = getline(&line, &line_len, fp)) != -1) {
         char *ptr = line;
         unsigned long count = 0;
 
@@ -974,13 +974,10 @@ static void kvm_format(void)
             if (*ptr == '\0' || *ptr == '\n')
                 break;
             errno = 0;
-            strtoull(ptr, &end, 10);
-            if (end == ptr) {
-                while (*ptr && !isspace((unsigned char)*ptr))
-                    ptr++;
-                continue;
-            }
-            if (errno == ERANGE || (*end && !isspace((unsigned char)*end))) {
+            (void) strtoull(ptr, &end, 10);
+            if (end == ptr || errno == ERANGE || (*end && !isspace((unsigned char)*end))) {
+                if (end == ptr)
+                    end = ptr;
                 ptr = end;
                 while (*ptr && !isspace((unsigned char)*ptr))
                     ptr++;
