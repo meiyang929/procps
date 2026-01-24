@@ -53,6 +53,10 @@ vfork, and clone system calls, and is equivalent to the total number of tasks
 created.  Each process is represented by one or more tasks, depending on
 thread usage.  This display does not repeat.
 .TP
+\fB\-k\fR, \fB\-\-kvm\fR
+Display per-line numeric field counts from
+.IR /sys/kernel/debug/kvm/vcpu_stat .
+.TP
 \fB\-m\fR, \fB\-\-slabs\fR
 Displays slabinfo.
 .TP
@@ -179,6 +183,12 @@ num: Number of currently active objects
 total: Total number of available objects
 size: Size of each object
 pages: Number of pages with at least one active object
+.fi
+.SH FIELD DESCRIPTION FOR KVM MODE
+.nf
+line: Line number from
+.I /sys/kernel/debug/kvm/vcpu_stat
+count: Number of numeric values parsed on that line
 .fi
 .SH NOTES
 .B vmstat
