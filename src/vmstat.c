@@ -973,8 +973,15 @@ static void kvm_format(void)
                 ptr++;
             if (*ptr == '\0' || *ptr == '\n')
                 break;
+            errno = 0;
             (void) strtoull(ptr, &end, 10);
             if (end == ptr) {
+                while (*ptr && !isspace((unsigned char)*ptr))
+                    ptr++;
+                continue;
+            }
+            if (errno == ERANGE || (*end && !isspace((unsigned char)*end))) {
+                ptr = end;
                 while (*ptr && !isspace((unsigned char)*ptr))
                     ptr++;
                 continue;
