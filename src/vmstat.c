@@ -67,6 +67,7 @@ static char szDataUnit[3] = "K";
 #define SLABSTAT      0x00000004
 #define PARTITIONSTAT 0x00000008
 #define DISKSUMSTAT   0x00000010
+#define KVMSTAT       0x00000020
 
 static int statMode = VMSTAT;
 
@@ -222,6 +223,7 @@ static void __attribute__ ((__noreturn__))
     fputs(USAGE_OPTIONS, out);
     fputs(_(" -a, --active           active/inactive memory\n"), out);
     fputs(_(" -f, --forks            number of forks since boot\n"), out);
+    fputs(_(" -k, --kvm              KVM vcpu_stat numeric field counts\n"), out);
     fputs(_(" -m, --slabs            slabinfo\n"), out);
     fputs(_(" -n, --one-header       do not redisplay header\n"), out);
     fputs(_(" -s, --stats            event counter statistics\n"), out);
@@ -947,6 +949,50 @@ static void sum_format(void)
 #undef MEMv
 }
 
+static void kvm_format(void)
+{
+    const char *kvm_stat_path = "/sys/kernel/debug/kvm/vcpu_stat";
+    FILE *fp = NULL;
+    char *line = NULL;
+    size_t line_len = 0;
+    ssize_t read_len;
+    unsigned long line_no = 0;
+
+    fp = fopen(kvm_stat_path, "r");
+    if (!fp)
+        err(EXIT_FAILURE, _("Unable to open %s"), kvm_stat_path);
+
+    while ((read_len = getline(&line, &line_len, fp)) > 0) {
+        char *ptr = line;
+        unsigned long count = 0;
+
+        while (*ptr != '\0') {
+            char *end = NULL;
+
+            while (isspace((unsigned char)*ptr))
+                ptr++;
+            if (*ptr == '\0' || *ptr == '\n')
+                break;
+            (void) strtoull(ptr, &end, 10);
+            if (end == ptr) {
+                while (*ptr && !isspace((unsigned char)*ptr))
+                    ptr++;
+                continue;
+            }
+            count++;
+            ptr = end;
+        }
+        line_no++;
+        printf("%lu %lu\n", line_no, count);
+    }
+    if (ferror(fp))
+        err(EXIT_FAILURE, _("Unable to read %s"), kvm_stat_path);
+
+    free(line);
+    if (fclose(fp) != 0)
+        err(EXIT_FAILURE, _("Unable to close %s"), kvm_stat_path);
+}
+
 static void fork_format(void)
 {
     struct stat_info *stat_info = NULL;
@@ -979,6 +1025,7 @@ int main(int argc, char *argv[])
     static const struct option longopts[] = {
         {"active", no_argument, NULL, 'a'},
         {"forks", no_argument, NULL, 'f'},
+        {"kvm", no_argument, NULL, 'k'},
         {"slabs", no_argument, NULL, 'm'},
         {"one-header", no_argument, NULL, 'n'},
         {"stats", no_argument, NULL, 's'},
@@ -1003,7 +1050,7 @@ int main(int argc, char *argv[])
     atexit(close_stdout);
 
     while ((c =
-        getopt_long(argc, argv, "afmnsdDp:S:wthVy", longopts, NULL)) != -1)
+        getopt_long(argc, argv, "afkmnsdDp:S:wthVy", longopts, NULL)) != -1)
         switch (c) {
         case 'V':
             printf(PROCPS_NG_VERSION);
@@ -1021,6 +1068,9 @@ int main(int argc, char *argv[])
             /* FIXME: check for conflicting args */
             fork_format();
             exit(0);
+        case 'k':
+            statMode |= KVMSTAT;
+            break;
         case 'm':
             statMode |= SLABSTAT;
             break;
@@ -1118,6 +1168,9 @@ int main(int argc, char *argv[])
         break;
     case (DISKSUMSTAT):
         disksum_format();
+        break;
+    case (KVMSTAT):
+        kvm_format();
         break;
     default:
         usage(stderr);

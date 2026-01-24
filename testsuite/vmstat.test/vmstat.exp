@@ -23,6 +23,14 @@ if { [ file readable "/proc/vmstat" ] == 0 } {
     expect_pass "$test" "^\\s+\\d+ forks\\s*$"
 }
 
+set test "vmstat kvm vcpu_stat field counts (-k option)"
+if { [ file readable "/sys/kernel/debug/kvm/vcpu_stat" ] == 0 } {
+    unsupported "$test /sys/kernel/debug/kvm/vcpu_stat is unreadable"
+} else {
+    spawn $vmstat -k
+    expect_pass "$test" "^\\s*\\d+\\s+\\d+\\s*$"
+}
+
 if { [ file readable "/proc/slabinfo" ] == 0 } {
     unsupported "slabinfo (-m option) test disabled as /proc/slabinfo is unreadable"
 } else {
