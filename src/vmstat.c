@@ -974,18 +974,20 @@ static void kvm_format(void)
             if (*ptr == '\0' || *ptr == '\n')
                 break;
             errno = 0;
-            (void) strtoull(ptr, &end, 10);
+            unsigned long long value = strtoull(ptr, &end, 10);
             if (end == ptr) {
                 while (*ptr && !isspace((unsigned char)*ptr))
                     ptr++;
                 continue;
             }
-            if (errno == ERANGE || (*end && !isspace((unsigned char)*end))) {
+            if ((errno == ERANGE && end != ptr) ||
+                (*end && !isspace((unsigned char)*end))) {
                 ptr = end;
                 while (*ptr && !isspace((unsigned char)*ptr))
                     ptr++;
                 continue;
             }
+            (void) value;
             count++;
             ptr = end;
         }
