@@ -77,3 +77,4 @@ src/tests/test_strutils
 *.sum
 *.exe
 *.mo
+_codeql_detected_source_root
