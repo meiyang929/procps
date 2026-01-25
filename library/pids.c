@@ -173,7 +173,7 @@ static int pids_fetch_dedup_ensure (
     if (info->fetch.tid_hash_size > (INT_MAX / 2))
         return 0;
     newsize = info->fetch.tid_hash_size * 2;
-    if (newsize & (newsize - 1))
+    if ((newsize & (newsize - 1)) != 0)
         return 0;
 
     new_hash = malloc(sizeof(int) * newsize);

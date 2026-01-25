@@ -16,9 +16,10 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-#include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "pids.h"
 #include "tests.h"
@@ -26,6 +27,7 @@
 enum pids_item items[] = { PIDS_ID_PID, PIDS_ID_PID };
 enum pids_item items2[] = { PIDS_ID_PID, PIDS_VM_RSS };
 enum pids_item items_tid[] = { PIDS_ID_TID };
+static int cmp_int(const void *a, const void *b);
 
 int check_pids_new_nullinfo(void *data)
 {
@@ -61,11 +63,24 @@ int check_fatal_proc_unmounted(void *data)
 	    ( PIDS_VAL(1, ul_int, stack) > 0));
 }
 
+static int cmp_int(const void *a, const void *b)
+{
+    int lhs = *(const int *)a;
+    int rhs = *(const int *)b;
+
+    if (lhs < rhs)
+        return -1;
+    if (lhs > rhs)
+        return 1;
+    return 0;
+}
+
 int check_pids_reap_unique_tid(void *data)
 {
     struct pids_info *info = NULL;
     struct pids_fetch *fetch;
-    int i, j;
+    int i, count;
+    int *tids;
     testname = "procps_pids_reap() unique tid entries";
 
     if (procps_pids_new(&info, items_tid, 1) != 0)
@@ -75,15 +90,28 @@ int check_pids_reap_unique_tid(void *data)
         procps_pids_unref(&info);
         return 0;
     }
-    for (i = 0; fetch->stacks[i]; i++) {
-        int tid = PIDS_VAL(0, s_int, fetch->stacks[i]);
-        for (j = i + 1; fetch->stacks[j]; j++) {
-            if (tid == PIDS_VAL(0, s_int, fetch->stacks[j])) {
-                procps_pids_unref(&info);
-                return 0;
-            }
+    for (count = 0; fetch->stacks[count]; count++) {
+        if (count > INT_MAX - 1) {
+            procps_pids_unref(&info);
+            return 0;
         }
     }
+    tids = calloc(count ? count : 1, sizeof(int));
+    if (!tids) {
+        procps_pids_unref(&info);
+        return 0;
+    }
+    for (i = 0; i < count; i++)
+        tids[i] = PIDS_VAL(0, s_int, fetch->stacks[i]);
+    qsort(tids, count, sizeof(int), cmp_int);
+    for (i = 1; i < count; i++) {
+        if (tids[i] == tids[i - 1]) {
+            free(tids);
+            procps_pids_unref(&info);
+            return 0;
+        }
+    }
+    free(tids);
     procps_pids_unref(&info);
     return 1;
 }
