@@ -91,7 +91,7 @@ int check_pids_reap_unique_tid(void *data)
         return 0;
     }
     for (count = 0; fetch->stacks[count]; count++) {
-        if (count > INT_MAX - 1) {
+        if (count >= INT_MAX) {
             procps_pids_unref(&info);
             return 0;
         }

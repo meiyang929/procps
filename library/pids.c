@@ -171,9 +171,9 @@ static int pids_fetch_dedup_ensure (
     if (needed <= info->fetch.tid_hash_size * 3 / 4)
         return 1;
 
-    if ((info->fetch.tid_hash_size & (info->fetch.tid_hash_size - 1)) != 0)
-        return 0;
     if (info->fetch.tid_hash_size > (INT_MAX / 2))
+        return 0;
+    if ((info->fetch.tid_hash_size & (info->fetch.tid_hash_size - 1)) != 0)
         return 0;
     newsize = info->fetch.tid_hash_size * 2;
     if (newsize > (INT_MAX / (int)sizeof(int)))
