@@ -90,11 +90,13 @@ int check_pids_reap_unique_tid(void *data)
         procps_pids_unref(&info);
         return 0;
     }
-    for (count = 0; fetch->stacks[count]; count++) {
-        if (count >= INT_MAX) {
+    count = 0;
+    while (fetch->stacks[count]) {
+        if (count >= INT_MAX - 1) {
             procps_pids_unref(&info);
             return 0;
         }
+        count++;
     }
     tids = calloc(count, sizeof(int));
     if (!tids) {

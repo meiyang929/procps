@@ -48,6 +48,9 @@
 #define STACKS_INIT  1024              // amount of initial stack allocation
 #define STACKS_GROW  128               // amount reap stack allocations grow
 #define TIDHASH_INIT 2048              // hash size for duplicate tid detection
+#if (TIDHASH_INIT & (TIDHASH_INIT - 1))
+#error "TIDHASH_INIT must be a power of two"
+#endif
 #define NEWOLD_INIT  1024              // amount for initial hist allocation
 #define NEWOLD_GROW  128               // amt by which hist allocations grow
 
@@ -176,7 +179,7 @@ static int pids_fetch_dedup_ensure (
     if ((info->fetch.tid_hash_size & (info->fetch.tid_hash_size - 1)) != 0)
         return 0;
     newsize = info->fetch.tid_hash_size * 2;
-    if (newsize > (INT_MAX / (int)sizeof(int)))
+    if (newsize > (INT_MAX / sizeof(int)))
         return 0;
 
     new_hash = malloc(sizeof(int) * newsize);
