@@ -48,6 +48,8 @@
 #define STACKS_INIT  1024              // amount of initial stack allocation
 #define STACKS_GROW  128               // amount reap stack allocations grow
 #define TIDHASH_INIT 2048              // hash size for duplicate tid detection
+#define TIDHASH_LOAD_NUM 3             // 75% load factor threshold
+#define TIDHASH_LOAD_DEN 4
 #if (TIDHASH_INIT & (TIDHASH_INIT - 1))
 #error "TIDHASH_INIT must be a power of two"
 #endif
@@ -171,13 +173,15 @@ static int pids_fetch_dedup_ensure (
             return 0;
     }
 
-    if (needed <= info->fetch.tid_hash_size * 3 / 4)
+    if (needed <= info->fetch.tid_hash_size * TIDHASH_LOAD_NUM / TIDHASH_LOAD_DEN)
         return 1;
 
+    /* ensure power-of-two hash size for bitwise AND hashing */
     if (info->fetch.tid_hash_size > (INT_MAX / 2))
         return 0;
     if ((info->fetch.tid_hash_size & (info->fetch.tid_hash_size - 1)) != 0)
         return 0;
+    /* prevent overflow when doubling hash size */
     newsize = info->fetch.tid_hash_size * 2;
     if (newsize > (INT_MAX / sizeof(int)))
         return 0;
@@ -209,8 +213,13 @@ static int pids_fetch_dedup_seen (
     int slot;
     int pos;
 
-    if (info->fetch.tid_hash_size == 0)
-        return 0;
+    if (info->fetch.tid_hash_size == 0) {
+        if (!pids_fetch_dedup_ensure(info, 1, info->fetch.n_alloc)) {
+            errno = ENOMEM;
+            return 0;
+        }
+        pids_fetch_dedup_reset(info);
+    }
     slot = (unsigned)tid & (info->fetch.tid_hash_size - 1);
     pos = info->fetch.tid_hash[slot];
 
