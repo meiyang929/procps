@@ -25,6 +25,7 @@
 
 enum pids_item items[] = { PIDS_ID_PID, PIDS_ID_PID };
 enum pids_item items2[] = { PIDS_ID_PID, PIDS_VM_RSS };
+enum pids_item items_tid[] = { PIDS_ID_TID };
 
 int check_pids_new_nullinfo(void *data)
 {
@@ -60,16 +61,42 @@ int check_fatal_proc_unmounted(void *data)
 	    ( PIDS_VAL(1, ul_int, stack) > 0));
 }
 
+int check_pids_reap_unique_tid(void *data)
+{
+    struct pids_info *info = NULL;
+    struct pids_fetch *fetch;
+    int i, j;
+    testname = "procps_pids_reap() unique tid entries";
+
+    if (procps_pids_new(&info, items_tid, 1) != 0)
+        return 0;
+    fetch = procps_pids_reap(info, PIDS_FETCH_TASKS_ONLY);
+    if (!fetch) {
+        procps_pids_unref(&info);
+        return 0;
+    }
+    for (i = 0; fetch->stacks[i]; i++) {
+        int tid = PIDS_VAL(0, s_int, fetch->stacks[i]);
+        for (j = i + 1; fetch->stacks[j]; j++) {
+            if (tid == PIDS_VAL(0, s_int, fetch->stacks[j])) {
+                procps_pids_unref(&info);
+                return 0;
+            }
+        }
+    }
+    procps_pids_unref(&info);
+    return 1;
+}
+
 TestFunction test_funcs[] = {
     check_pids_new_nullinfo,
     // skipped, ask Jim check_pids_new_toomany,
     check_pids_new_and_unref,
     check_fatal_proc_unmounted,
+    check_pids_reap_unique_tid,
     NULL };
 
 int main(int argc, char *argv[])
 {
     return run_tests(test_funcs, NULL);
 }
-
-

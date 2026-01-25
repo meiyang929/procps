@@ -47,6 +47,7 @@
 
 #define STACKS_INIT  1024              // amount of initial stack allocation
 #define STACKS_GROW  128               // amount reap stack allocations grow
+#define TIDHASH_INIT 2048              // hash size for duplicate tid detection
 #define NEWOLD_INIT  1024              // amount for initial hist allocation
 #define NEWOLD_GROW  128               // amt by which hist allocations grow
 
@@ -69,6 +70,11 @@ struct fetch_support {
     int n_alloc;                       // number of above pointers allocated
     int n_inuse;                       // number of above pointers occupied
     int n_alloc_save;                  // last known results.stacks allocation
+    int *tid_hash;                     // hash table for detecting duplicates
+    int tid_hash_size;                 // size of tid_hash table
+    int *tid_list;                     // stored tids for each stack entry
+    int *tid_link;                     // hash chain links for tid_list
+    int tid_list_size;                 // size of tid_list/tid_link arrays
     struct pids_fetch results;         // counts + stacks for return to caller
     struct pids_counts counts;         // actual counts pointed to by 'results'
 };
@@ -100,6 +106,116 @@ struct pids_info {
     int containers_yes;                // need to call pids_containers_check
     unsigned *select_ids;              // copy of user 'these' (pids/uids)
 };
+
+static void pids_fetch_dedup_reset (
+        struct pids_info *info)
+{
+    int i;
+    int *hash = info->fetch.tid_hash;
+
+    if (!hash)
+        return;
+    for (i = 0; i < info->fetch.tid_hash_size; i++)
+        hash[i] = -1;
+}
+
+static int pids_fetch_dedup_resize (
+        struct pids_info *info,
+        int new_alloc)
+{
+    int *new_list = malloc(sizeof(int) * new_alloc);
+    int *new_link = malloc(sizeof(int) * new_alloc);
+
+    if (!new_list || !new_link) {
+        free(new_list);
+        free(new_link);
+        return 0;
+    }
+    if (info->fetch.tid_list) {
+        if (info->fetch.n_inuse > 0) {
+            memcpy(new_list, info->fetch.tid_list, sizeof(int) * info->fetch.n_inuse);
+            memcpy(new_link, info->fetch.tid_link, sizeof(int) * info->fetch.n_inuse);
+        }
+        free(info->fetch.tid_list);
+        free(info->fetch.tid_link);
+    }
+    info->fetch.tid_list = new_list;
+    info->fetch.tid_link = new_link;
+    info->fetch.tid_list_size = new_alloc;
+    return 1;
+}
+
+static int pids_fetch_dedup_ensure (
+        struct pids_info *info,
+        int needed,
+        int new_alloc)
+{
+    int i;
+    int newsize;
+    int *new_hash;
+
+    if (info->fetch.tid_hash_size == 0) {
+        info->fetch.tid_hash_size = TIDHASH_INIT;
+        info->fetch.tid_hash = malloc(sizeof(int) * info->fetch.tid_hash_size);
+        if (!info->fetch.tid_hash)
+            return 0;
+        for (i = 0; i < info->fetch.tid_hash_size; i++)
+            info->fetch.tid_hash[i] = -1;
+    }
+
+    if (new_alloc > 0 && (!info->fetch.tid_list || new_alloc > info->fetch.tid_list_size)
+    && !pids_fetch_dedup_resize(info, new_alloc))
+        return 0;
+
+    if (needed <= info->fetch.tid_hash_size * 3 / 4)
+        return 1;
+
+    newsize = info->fetch.tid_hash_size * 2;
+    if (newsize < info->fetch.tid_hash_size)
+        return 0;
+
+    new_hash = malloc(sizeof(int) * newsize);
+    if (!new_hash)
+        return 0;
+    for (i = 0; i < newsize; i++)
+        new_hash[i] = -1;
+
+    for (i = 0; i < info->fetch.n_inuse; i++) {
+        int tid = info->fetch.tid_list[i];
+        int slot = (unsigned)tid & (newsize - 1);
+        info->fetch.tid_link[i] = new_hash[slot];
+        new_hash[slot] = i;
+    }
+
+    free(info->fetch.tid_hash);
+    info->fetch.tid_hash = new_hash;
+    info->fetch.tid_hash_size = newsize;
+    return 1;
+}
+
+static int pids_fetch_dedup_seen (
+        struct pids_info *info,
+        int tid,
+        int index)
+{
+    int slot;
+    int pos;
+
+    if (info->fetch.tid_hash_size == 0)
+        return 0;
+    slot = (unsigned)tid & (info->fetch.tid_hash_size - 1);
+    pos = info->fetch.tid_hash[slot];
+
+    while (pos >= 0) {
+        if (info->fetch.tid_list[pos] == tid)
+            return 1;
+        pos = info->fetch.tid_link[pos];
+    }
+    info->fetch.tid_list[index] = tid;
+    info->fetch.tid_link[index] = info->fetch.tid_hash[slot];
+    info->fetch.tid_hash[slot] = index;
+    return 0;
+}
 
 
 // ___ Free Storage Support |||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -1237,7 +1353,10 @@ static int pids_stacks_fetch (
         memcpy(info->fetch.anchor, ext->stacks, sizeof(void *) * STACKS_INIT);
         n_alloc = STACKS_INIT;
     }
+    if (!pids_fetch_dedup_ensure(info, 1, n_alloc))
+        return -1;
     pids_toggle_history(info);
+    pids_fetch_dedup_reset(info);
     memset(&info->fetch.counts, 0, sizeof(struct pids_counts));
 
     // iterate stuff --------------------------------------
@@ -1249,7 +1368,11 @@ static int pids_stacks_fetch (
             || (!(ext = pids_stacks_alloc(info, STACKS_GROW))))
                 return -1;   // here, errno was set to ENOMEM
             memcpy(info->fetch.anchor + n_inuse, ext->stacks, sizeof(void *) * STACKS_GROW);
+            if (!pids_fetch_dedup_ensure(info, n_inuse + 1, n_alloc))
+                return -1;
         }
+        if (pids_fetch_dedup_seen(info, info->fetch_proc.tid, n_inuse))
+            continue;
         if (!pids_proc_tally(info, &info->fetch.counts, &info->fetch_proc))
             return -1;       // here, errno was set to ENOMEM
         if (!pids_assign_results(info, info->fetch.anchor[n_inuse++], &info->fetch_proc))
@@ -1437,6 +1560,12 @@ PROCPS_EXPORT int procps_pids_unref (
             free((*info)->fetch.anchor);
         if ((*info)->fetch.results.stacks)
             free((*info)->fetch.results.stacks);
+        if ((*info)->fetch.tid_hash)
+            free((*info)->fetch.tid_hash);
+        if ((*info)->fetch.tid_list)
+            free((*info)->fetch.tid_list);
+        if ((*info)->fetch.tid_link)
+            free((*info)->fetch.tid_link);
 
         if ((*info)->items)
             free((*info)->items);
