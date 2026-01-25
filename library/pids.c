@@ -163,17 +163,20 @@ static int pids_fetch_dedup_ensure (
             info->fetch.tid_hash[i] = -1;
     }
 
-    if (new_alloc > 0 && (!info->fetch.tid_list || new_alloc > info->fetch.tid_list_size)
-    && !pids_fetch_dedup_resize(info, new_alloc))
-        return 0;
+    if (new_alloc > 0 && (!info->fetch.tid_list || new_alloc > info->fetch.tid_list_size)) {
+        if (!pids_fetch_dedup_resize(info, new_alloc))
+            return 0;
+    }
 
     if (needed <= info->fetch.tid_hash_size * 3 / 4)
         return 1;
 
+    if ((info->fetch.tid_hash_size & (info->fetch.tid_hash_size - 1)) != 0)
+        return 0;
     if (info->fetch.tid_hash_size > (INT_MAX / 2))
         return 0;
     newsize = info->fetch.tid_hash_size * 2;
-    if ((newsize & (newsize - 1)) != 0)
+    if (newsize > (INT_MAX / (int)sizeof(int)))
         return 0;
 
     new_hash = malloc(sizeof(int) * newsize);

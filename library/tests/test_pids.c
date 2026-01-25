@@ -96,7 +96,7 @@ int check_pids_reap_unique_tid(void *data)
             return 0;
         }
     }
-    tids = calloc(count ? count : 1, sizeof(int));
+    tids = calloc(count, sizeof(int));
     if (!tids) {
         procps_pids_unref(&info);
         return 0;
