@@ -1373,7 +1373,7 @@ next_proc:
 // This reads /proc/*/task/* data, for one task.
 // t is the POSIX thread  (task group member, generally not the leader)
 // path is a path to the task, with some room to spare.
-static proc_t *simple_readtask(PROCTAB *restrict const PT, proc_t *restrict const t) {
+static proc_t *simple_readtask(PROCTAB *restrict const PT, const proc_t *restrict const p, proc_t *restrict const t) {
     static __thread struct utlbuf_s ub = { NULL, 0 };    // buf for stat,statm,status.cgroup
     static __thread struct stat sb;     // stat() buffer
     unsigned flags = PT->flags;
@@ -1394,6 +1394,7 @@ static proc_t *simple_readtask(PROCTAB *restrict const PT, proc_t *restrict cons
     if (file2str(PT->taskfd, "stat", &ub) == -1)
         goto next_task;
     rc += stat2proc(ub.buf, t);
+    t->ppid = p->ppid;
 
     if (PT->hide_kernel && (t->ppid == 2 || t->tid == 2)) {
         free_acquired(t);
@@ -1647,7 +1648,7 @@ next_proc:
 next_task:
     // fills in our path, plus x->tid and x->tgid
     if ((!(PT->taskfinder(PT,&skel_p,x)))             // simple_nexttid
-    || (!(ret = PT->taskreader(PT,x)))) {             // simple_readtask
+    || (!(ret = PT->taskreader(PT,&skel_p,x)))) {     // simple_readtask
         goto next_proc;
     }
     if (!new_p) {
