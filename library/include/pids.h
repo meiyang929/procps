@@ -197,7 +197,7 @@ enum pids_item {
                             //                 when multiplied by hertz obtained via procps_misc(3).
 enum pids_fetch_type {
     PIDS_FETCH_TASKS_ONLY,    // only process task-group leaders (one entry per PID)
-    PIDS_FETCH_THREADS_TOO    // include individual threads via /proc/[pid]/task
+    PIDS_FETCH_THREADS_TOO    // read thread entries from /proc/[pid]/task (includes leader tid)
 };
 
 enum pids_select_type {
