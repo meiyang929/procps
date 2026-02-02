@@ -304,6 +304,8 @@ PROCTAB *openproc(unsigned flags, ... /* pid_t *| uid_t *| dev_t *| char *[, int
 //       only before first use.  Thereafter, the library will manage such
 //       a passed proc_t, freeing any additional acquired memory associated
 //       with the previous process or thread.
+// readproc() iterates over one proc_t per process (task-group leader only),
+// while readeither() may return both processes and their threads.
 proc_t *readproc(PROCTAB *__restrict const PT, proc_t *__restrict p);
 proc_t *readeither(PROCTAB *__restrict const PT, proc_t *__restrict x);
 int look_up_our_self(void);

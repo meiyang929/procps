@@ -125,7 +125,8 @@ With \fBnew\fR it must have been initialized to NULL.
 With \fBunref\fR it will be reset to NULL if the reference count reaches zero.
 .P
 The \fBget\fR and \fBreap\fR functions use the \fIwhich\fR parameter
-to specify whether just tasks or both tasks and threads are to be fetched.
+to specify whether just task-group leaders (one entry per PID) or both
+tasks and their threads (via /proc/\fIPID\fR/task) are to be fetched.
 .P
 The \fBselect\fR function requires an array of PIDs or UIDs as
 \fIthese\fR along with \fInumthese\fR to identify which processes
