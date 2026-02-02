@@ -196,8 +196,8 @@ enum pids_item {
                             //                 converted into tics/jiffies with no loss of precision
                             //                 when multiplied by hertz obtained via procps_misc(3).
 enum pids_fetch_type {
-    PIDS_FETCH_TASKS_ONLY,
-    PIDS_FETCH_THREADS_TOO
+    PIDS_FETCH_TASKS_ONLY,    // only process task-group leaders (one entry per PID)
+    PIDS_FETCH_THREADS_TOO    // read thread entries from /proc/[pid]/task (includes leader tid)
 };
 
 enum pids_select_type {
