@@ -2859,8 +2859,8 @@ static void *tasks_refresh (void *unused) {
       }
       what = Thread_mode ? PIDS_FETCH_THREADS_TOO : PIDS_FETCH_TASKS_ONLY;
       if (Monpidsidx) {
-         what |= PIDS_SELECT_PID;
-         Pids_reap = procps_pids_select(Pids_ctx, (unsigned *)Monpids, Monpidsidx, what);
+         enum pids_select_type pid_select_type = Thread_mode ? PIDS_SELECT_PID_THREADS : PIDS_SELECT_PID;
+         Pids_reap = procps_pids_select(Pids_ctx, (unsigned *)Monpids, Monpidsidx, pid_select_type);
       } else
          Pids_reap = procps_pids_reap(Pids_ctx, what);
       if (!Pids_reap)
