@@ -827,8 +827,10 @@ static inline void pids_shrink_history (
     new_sav = calloc(desired, sizeof(HST_t));
     new_new = calloc(desired, sizeof(HST_t));
     if (!new_sav || !new_new) {
-        free(new_sav);
-        free(new_new);
+        if (new_sav)
+            free(new_sav);
+        if (new_new)
+            free(new_new);
         return;
     }
 
