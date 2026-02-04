@@ -787,6 +787,7 @@ static inline void pids_toggle_history (
         struct pids_info *info)
 {
     void *v;
+    int prev_tasks = info->hist->num_tasks;
 
     v = Hr(PHist_sav);
     Hr(PHist_sav) = Hr(PHist_new);
@@ -798,7 +799,57 @@ static inline void pids_toggle_history (
     memcpy(Hr(PHash_new), Hr(HHash_nul), sizeof(Hr(HHash_nul)));
 
     info->hist->num_tasks = 0;
+    pids_shrink_history(info, prev_tasks);
 } // end: pids_toggle_history
+
+
+static void pids_shrink_history (
+        struct pids_info *info,
+        int prev_tasks)
+{
+    int desired;
+    int old_size;
+    int copy;
+    HST_t *new_sav;
+    HST_t *new_new;
+
+    if (!info->hist)
+        return;
+    old_size = Hr(HHist_siz);
+    if (old_size <= NEWOLD_INIT)
+        return;
+    if (prev_tasks < 0 || NEWOLD_GROW <= 0)
+        return;
+    if (prev_tasks > INT_MAX - NEWOLD_GROW)
+        return;
+    desired = prev_tasks + NEWOLD_GROW;
+    if (desired < NEWOLD_INIT)
+        desired = NEWOLD_INIT;
+    if (desired + NEWOLD_GROW >= old_size)
+        return;
+
+    new_sav = calloc(desired, sizeof(HST_t));
+    if (!new_sav)
+        return;
+    new_new = calloc(desired, sizeof(HST_t));
+    if (!new_new) {
+        free(new_sav);
+        return;
+    }
+
+    copy = prev_tasks;
+    if (copy > desired)
+        copy = desired;
+    memcpy(new_sav, Hr(PHist_sav), sizeof(HST_t) * (size_t)copy);
+    /* prev_tasks reflects the previous fetch count for PHist_sav. */
+    /* PHist_new will be repopulated on the next fetch. */
+
+    free(Hr(PHist_sav));
+    free(Hr(PHist_new));
+    Hr(PHist_sav) = new_sav;
+    Hr(PHist_new) = new_new;
+    Hr(HHist_siz) = desired;
+} // end: pids_shrink_history
 
 
 #ifdef UNREF_RPTHASH
