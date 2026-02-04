@@ -787,6 +787,7 @@ static inline void pids_toggle_history (
         struct pids_info *info)
 {
     void *v;
+    int prev_tasks = info->hist->num_tasks;
 
     v = Hr(PHist_sav);
     Hr(PHist_sav) = Hr(PHist_new);
@@ -798,11 +799,13 @@ static inline void pids_toggle_history (
     memcpy(Hr(PHash_new), Hr(HHash_nul), sizeof(Hr(HHash_nul)));
 
     info->hist->num_tasks = 0;
+    pids_shrink_history(info, prev_tasks);
 } // end: pids_toggle_history
 
 
 static inline void pids_shrink_history (
-        struct pids_info *info)
+        struct pids_info *info,
+        int prev_tasks)
 {
     int desired;
     int old_size;
@@ -815,26 +818,21 @@ static inline void pids_shrink_history (
     old_size = Hr(HHist_siz);
     if (old_size <= NEWOLD_INIT)
         return;
-    desired = info->hist->num_tasks + NEWOLD_GROW;
+    desired = prev_tasks + NEWOLD_GROW;
     if (desired < NEWOLD_INIT)
         desired = NEWOLD_INIT;
     if (desired + NEWOLD_GROW >= old_size)
         return;
 
-    new_sav = malloc(sizeof(HST_t) * desired);
-    new_new = malloc(sizeof(HST_t) * desired);
+    new_sav = calloc(desired, sizeof(HST_t));
+    new_new = calloc(desired, sizeof(HST_t));
     if (!new_sav || !new_new) {
         free(new_sav);
         free(new_new);
         return;
     }
 
-    copy = info->hist->num_tasks;
-    if (copy > desired)
-        copy = desired;
-    memcpy(new_new, Hr(PHist_new), sizeof(HST_t) * copy);
-
-    copy = old_size;
+    copy = prev_tasks;
     if (copy > desired)
         copy = desired;
     memcpy(new_sav, Hr(PHist_sav), sizeof(HST_t) * copy);
