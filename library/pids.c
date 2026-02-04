@@ -801,6 +801,52 @@ static inline void pids_toggle_history (
 } // end: pids_toggle_history
 
 
+static inline void pids_shrink_history (
+        struct pids_info *info)
+{
+    int desired;
+    int old_size;
+    int copy;
+    HST_t *new_sav;
+    HST_t *new_new;
+
+    if (!info->hist)
+        return;
+    old_size = Hr(HHist_siz);
+    if (old_size <= NEWOLD_INIT)
+        return;
+    desired = info->hist->num_tasks + NEWOLD_GROW;
+    if (desired < NEWOLD_INIT)
+        desired = NEWOLD_INIT;
+    if (desired + NEWOLD_GROW >= old_size)
+        return;
+
+    new_sav = malloc(sizeof(HST_t) * desired);
+    new_new = malloc(sizeof(HST_t) * desired);
+    if (!new_sav || !new_new) {
+        free(new_sav);
+        free(new_new);
+        return;
+    }
+
+    copy = info->hist->num_tasks;
+    if (copy > desired)
+        copy = desired;
+    memcpy(new_new, Hr(PHist_new), sizeof(HST_t) * copy);
+
+    copy = old_size;
+    if (copy > desired)
+        copy = desired;
+    memcpy(new_sav, Hr(PHist_sav), sizeof(HST_t) * copy);
+
+    free(Hr(PHist_sav));
+    free(Hr(PHist_new));
+    Hr(PHist_sav) = new_sav;
+    Hr(PHist_new) = new_new;
+    Hr(HHist_siz) = desired;
+} // end: pids_shrink_history
+
+
 #ifdef UNREF_RPTHASH
 static void pids_unref_rpthash (
         struct pids_info *info)
@@ -1238,6 +1284,7 @@ static int pids_stacks_fetch (
         n_alloc = STACKS_INIT;
     }
     pids_toggle_history(info);
+    pids_shrink_history(info);
     memset(&info->fetch.counts, 0, sizeof(struct pids_counts));
 
     // iterate stuff --------------------------------------
