@@ -1282,7 +1282,6 @@ static int pids_stacks_fetch (
         n_alloc = STACKS_INIT;
     }
     pids_toggle_history(info);
-    pids_shrink_history(info);
     memset(&info->fetch.counts, 0, sizeof(struct pids_counts));
 
     // iterate stuff --------------------------------------
