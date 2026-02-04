@@ -821,8 +821,6 @@ static void pids_shrink_history (
     if (prev_tasks > INT_MAX - NEWOLD_GROW)
         return;
     desired = prev_tasks + NEWOLD_GROW;
-    if (desired < prev_tasks)
-        desired = prev_tasks;
     if (desired < NEWOLD_INIT)
         desired = NEWOLD_INIT;
     if (desired + NEWOLD_GROW >= old_size)
@@ -840,7 +838,7 @@ static void pids_shrink_history (
     copy = prev_tasks;
     if (copy > desired)
         copy = desired;
-    if (copy > (int)(SIZE_MAX / sizeof(HST_t))) {
+    if ((size_t)copy > (SIZE_MAX / sizeof(HST_t))) {
         free(new_sav);
         free(new_new);
         return;
