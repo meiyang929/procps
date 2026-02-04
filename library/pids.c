@@ -825,12 +825,11 @@ static inline void pids_shrink_history (
         return;
 
     new_sav = calloc(desired, sizeof(HST_t));
+    if (!new_sav)
+        return;
     new_new = calloc(desired, sizeof(HST_t));
-    if (!new_sav || !new_new) {
-        if (new_sav)
-            free(new_sav);
-        if (new_new)
-            free(new_new);
+    if (!new_new) {
+        free(new_sav);
         return;
     }
 
@@ -838,6 +837,7 @@ static inline void pids_shrink_history (
     if (copy > desired)
         copy = desired;
     memcpy(new_sav, Hr(PHist_sav), sizeof(HST_t) * copy);
+    /* PHist_new will be repopulated on the next fetch. */
 
     free(Hr(PHist_sav));
     free(Hr(PHist_new));
