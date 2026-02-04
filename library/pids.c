@@ -818,6 +818,8 @@ static void pids_shrink_history (
     old_size = Hr(HHist_siz);
     if (old_size <= NEWOLD_INIT)
         return;
+    if (prev_tasks < 0 || NEWOLD_GROW <= 0)
+        return;
     if (prev_tasks > INT_MAX - NEWOLD_GROW)
         return;
     desired = prev_tasks + NEWOLD_GROW;
@@ -838,12 +840,7 @@ static void pids_shrink_history (
     copy = prev_tasks;
     if (copy > desired)
         copy = desired;
-    if ((size_t)copy > (SIZE_MAX / sizeof(HST_t))) {
-        free(new_sav);
-        free(new_new);
-        return;
-    }
-    memcpy(new_sav, Hr(PHist_sav), sizeof(HST_t) * copy);
+    memcpy(new_sav, Hr(PHist_sav), sizeof(HST_t) * (size_t)copy);
     /* PHist_new will be repopulated on the next fetch. */
 
     free(Hr(PHist_sav));
