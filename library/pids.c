@@ -841,6 +841,7 @@ static void pids_shrink_history (
     if (copy > desired)
         copy = desired;
     memcpy(new_sav, Hr(PHist_sav), sizeof(HST_t) * (size_t)copy);
+    /* prev_tasks reflects the previous fetch count for PHist_sav. */
     /* PHist_new will be repopulated on the next fetch. */
 
     free(Hr(PHist_sav));
