@@ -803,7 +803,7 @@ static inline void pids_toggle_history (
 } // end: pids_toggle_history
 
 
-static inline void pids_shrink_history (
+static void pids_shrink_history (
         struct pids_info *info,
         int prev_tasks)
 {
@@ -819,6 +819,8 @@ static inline void pids_shrink_history (
     if (old_size <= NEWOLD_INIT)
         return;
     desired = prev_tasks + NEWOLD_GROW;
+    if (desired < prev_tasks)
+        desired = prev_tasks;
     if (desired < NEWOLD_INIT)
         desired = NEWOLD_INIT;
     if (desired + NEWOLD_GROW >= old_size)
