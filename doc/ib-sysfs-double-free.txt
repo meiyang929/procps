@@ -1,4 +1,4 @@
-Issue: Linux v5.10 drivers/infiniband/core/sysfs.c 中高阶内存分配失败是否会触发 double-free。
+Issue: Linux v5.10 drivers/infiniband/core/sysfs.c 中的高阶内存分配失败是否会触发 double-free。
 
 结论：存在潜在 double-free / use-after-free 路径，集中在 add_port() 的 pkey_group 失败分支。
 
@@ -15,6 +15,10 @@ Issue: Linux v5.10 drivers/infiniband/core/sysfs.c 中高阶内存分配失败�
 结果：当 alloc_group_attrs() 因高阶内存不足失败时，p->pkey_group 会被
 err_free_pkey_group 释放一次，随后在 ib_port_release() 中再次释放，
 因此存在 double-free 风险（同时伴随对已释放指针的访问）。
+
+建议修复：在 err_free_pkey_group 路径中 kfree(p->pkey_group) 后将
+p->pkey_group 置为 NULL，或改为跳转到 err_free_pkey 并统一置空，避免
+ib_port_release() 再次释放。
 
 注意：其它 alloc_group_attrs() 失败路径（gid/ndev/type）在错误分支中
 将 attrs 指针置空，或者由 kobject release 处理，不会触发同类 double-free。
