@@ -1,0 +1,24 @@
+Issue: Linux v5.10 drivers/infiniband/core/sysfs.c 中的高阶内存分配失败是否会触发 double-free。
+
+结论：存在潜在 double-free / use-after-free 路径，集中在 add_port() 的 pkey_group 失败分支。
+
+关键路径（基于 v5.10 sysfs.c）：
+1) add_port() 中为 p->pkey_group 分配结构体后，调用 alloc_group_attrs()
+   为 p->pkey_group->attrs 分配指针数组。
+2) alloc_group_attrs() 内部使用 kcalloc(1 + len, sizeof(struct attribute *), GFP_KERNEL)
+   分配高阶内存；在高阶内存分配失败时返回 NULL。
+3) add_port() 检测到 p->pkey_group->attrs == NULL 后跳转到 err_free_pkey_group，
+   执行 kfree(p->pkey_group) 但没有将 p->pkey_group 置为 NULL。
+4) 后续 err_put 调用 kobject_put(&p->kobj) 触发 ib_port_release()，
+   ib_port_release() 检查 p->pkey_group 非空后再次释放 p->pkey_group。
+
+结果：当 alloc_group_attrs() 因高阶内存不足失败时，p->pkey_group 会被
+err_free_pkey_group 释放一次，随后在 ib_port_release() 中再次释放，
+因此存在 double-free 风险（同时伴随对已释放指针的访问）。
+
+建议修复：在 err_free_pkey_group 路径中 kfree(p->pkey_group) 后将
+p->pkey_group 置为 NULL，或改为跳转到 err_free_pkey 并统一置空，避免
+ib_port_release() 再次释放。
+
+注意：其它 alloc_group_attrs() 失败路径（gid/ndev/type）在错误分支中
+将 attrs 指针置空，或者由 kobject release 处理，不会触发同类 double-free。
