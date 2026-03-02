@@ -44,6 +44,7 @@ int check_conversion(void *data)
         { 132635, 2, 6, 27 },
         { 199936, 3, 13, 0 },
         { 263426, 4, 5, 2 },
+        { 330240, 5, 10, 0 },
         { 0, 0, 0, 0}
     };
 
@@ -68,5 +69,4 @@ int main(int argc, char *argv[])
 {
     return run_tests(test_funcs, NULL);
 }
-
 
