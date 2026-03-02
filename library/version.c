@@ -24,6 +24,7 @@
  */
 #include <errno.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "misc.h"
 #include "procps-private.h"
 
@@ -34,6 +35,11 @@
 #define PROCFS_OSRELEASE "/proc/sys/kernel/osrelease"
 #define PROCFS_OSPATTERN "%u.%u.%u"
 #endif
+
+static int version_depth_ok(int depth, unsigned int major)
+{
+    return (depth >= 2) && ((depth >= 3) || (major >= 3));
+}
 
 /*
  * procps_linux_version
@@ -54,7 +60,8 @@ PROCPS_EXPORT int procps_linux_version(void)
     FILE *fp;
     char buf[256];
     unsigned int x = 0, y = 0, z = 0;
-    int version_string_depth;
+    int version_string_depth = 0;
+    char *p;
 
     if ((fp = fopen(PROCFS_OSRELEASE, "r")) == NULL)
 	return -errno;
@@ -64,8 +71,16 @@ PROCPS_EXPORT int procps_linux_version(void)
     }
     fclose(fp);
     version_string_depth = sscanf(buf, PROCFS_OSPATTERN, &x, &y, &z);
-    if ((version_string_depth < 2) ||		 /* Non-standard for all known kernels */
-       ((version_string_depth < 3) && (x < 3))) /* Non-standard for 2.x.x kernels */
+    if (!version_depth_ok(version_string_depth, x)) {
+	for (p = buf; *p; p++) {
+	    if (!isdigit((unsigned char)*p))
+		continue;
+	    version_string_depth = sscanf(p, "%u.%u.%u", &x, &y, &z);
+	    if (version_depth_ok(version_string_depth, x))
+		break;
+	}
+    }
+    if (!version_depth_ok(version_string_depth, x)) /* Non-standard even after fallback parsing */
 	return -ERANGE;
     return LINUX_VERSION(x,y,z);
 }
