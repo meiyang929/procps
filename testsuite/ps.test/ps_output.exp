@@ -78,6 +78,39 @@ spawn $ps -a g
 expect_spawn_retval "$test" 1
 expect_pass "$test" "error: process selection options conflict"
 
+set test "ps pmem rounds to nearest tenth"
+set child_pid ""
+if {[catch {exec python3 -c {import time; x=bytearray(1024*1024); time.sleep(10)} &} child_pid]} {
+  untested "$test (python3 unavailable)"
+} else {
+  if {[catch {
+    for {set tries 0} {$tries < 10} {incr tries} {
+      set output [exec $ps -p $child_pid -o rss=,pmem=]
+      if { [regexp {\s*\d+\s+\d+\.\d+\s*} $output] } {
+        break
+      }
+      after 100
+    }
+    if { [regexp {\s*(\d+)\s+(\d+\.\d+)\s*} $output -> rss pmem] } {
+      set total [exec awk {/MemTotal:/ {print $2}} /proc/meminfo]
+      # Match src/ps/output.c pr_pmem integer rounding: (rss*1000 + total/2)/total
+      set expected [exec awk -v rss=$rss -v total=$total {BEGIN{v=int((rss*1000 + total/2)/total); printf "%d.%d", int(v/10), v%10}}]
+      if { $pmem == $expected } {
+        pass "$test value"
+      } else {
+        fail "$test value (got $pmem expected $expected rss $rss total $total)"
+      }
+    } else {
+      fail "$test output format (got \"$output\")"
+    }
+  } result]} {
+    fail "$test execution ($result)"
+  }
+  if {$child_pid ne "" && ![catch {exec kill -0 $child_pid}]} {
+    catch {exec kill $child_pid}
+  }
+}
+
 set test "ps -a has no session leaders"
 spawn $ps -a -o pid,sid
 expect_fail "$test" "***:\[\[:<:\]\]\\s*(\\d+)\\s+\\1\[\[:>:\]\]"
@@ -108,4 +141,3 @@ expect_pass "$test" "PID:CMD\\s+$testproc1_pid:spcorp\\s*$"
 
 # End of test process
 kill_testproc
-

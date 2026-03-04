@@ -1040,9 +1040,12 @@ setREL1(VM_RSS)
 /* pp->vm_rss * 1000 would overflow on 32-bit systems with 64 GB memory */
 static int pr_pmem(char *restrict const outbuf, const proc_t *restrict const pp){
   unsigned long pmem;
+  unsigned long long total;
 setREL1(VM_RSS)
   pmem = 0;
-  pmem = rSv(VM_RSS, ul_int, pp) * 1000ULL / memory_total();
+  total = memory_total();
+  if (total)
+    pmem = (rSv(VM_RSS, ul_int, pp) * 1000ULL + (total / 2)) / total;
   if (pmem > 999) pmem = 999;
   return snprintf(outbuf, COLWID, "%2u.%u", (unsigned)(pmem/10), (unsigned)(pmem%10));
 }
