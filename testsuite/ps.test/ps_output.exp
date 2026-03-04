@@ -78,6 +78,22 @@ spawn $ps -a g
 expect_spawn_retval "$test" 1
 expect_pass "$test" "error: process selection options conflict"
 
+set test "ps pmem rounds to nearest tenth"
+set child_pid [exec python3 -c {import time; x=bytearray(1024*1024); time.sleep(10)} &]
+set output [exec $ps -p $child_pid -o rss=,pmem=]
+exec kill $child_pid
+if { [regexp {\s*(\d+)\s+(\d+\.\d+)\s*} $output -> rss pmem] } {
+  set total [exec awk {/MemTotal:/ {print $2}} /proc/meminfo]
+  set expected [exec awk -v rss=$rss -v total=$total {BEGIN{v=int((rss*1000 + total/2)/total); printf "%d.%d", int(v/10), v%10}}]
+  if { $pmem == $expected } {
+    pass "$test value"
+  } else {
+    fail "$test value (got $pmem expected $expected rss $rss total $total)"
+  }
+} else {
+  fail "$test output format (got \"$output\")"
+}
+
 set test "ps -a has no session leaders"
 spawn $ps -a -o pid,sid
 expect_fail "$test" "***:\[\[:<:\]\]\\s*(\\d+)\\s+\\1\[\[:>:\]\]"
@@ -108,4 +124,3 @@ expect_pass "$test" "PID:CMD\\s+$testproc1_pid:spcorp\\s*$"
 
 # End of test process
 kill_testproc
-
