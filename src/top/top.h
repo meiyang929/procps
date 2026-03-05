@@ -576,11 +576,11 @@ typedef struct WIN_t {
 #ifdef ORIG_TOPDEFS
 #define DEF_FORMER  "\xa5\xa8\xb3\xb4\xbb\xbd\xc0\xc4\xb7\xba\xb9\xc5&')*+,-./012568<>?ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
 #else
-#define DEF_FORMER  "\xa5&K\xa8\xb3\xb4\xbb\xbd@\xb7\xba\xb9""56\xc4""F\xc5')*+,-./0128<>?ABCGHIJLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
+#define DEF_FORMER  "\xa5&K\xa8\xb3\xb4\xbb\xbd@\xb7\xba\xb9\x35\x36\xc4\x46\xc5')*+,-./0128<>?ABCGHIJLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
 #endif
         /* Pre-configured windows/field groups */
 #define JOB_FORMER  "\xa5\xa6\xb9\xb7\xba(\xb3\xb4\xc4\xbb\xbd@<\xa7\xc5)*+,-./012568>?ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
-#define MEM_FORMER  "\xa5\xba\xbb<\xbd\xbe\xbf\xc0\xc1MBN\xc3""D34\xb7\xc5&'()*+,-./0125689FGHIJKLOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
+#define MEM_FORMER  "\xa5\xba\xbb<\xbd\xbe\xbf\xc0\xc1MBN\xc3\x44\x33\x34\xb7\xc5&'()*+,-./0125689FGHIJKLOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
 #define USR_FORMER  "\xa5\xa6\xa7\xa8\xaa\xb0\xb9\xb7\xba\xc4\xc5)+,-./1234568;<=>?@ABCFGHIJKLMNOPQRSTUVWXYZ[" RCF_PLUS_H RCF_PLUS_J
         // old top fields ( 'a'-'z' ) in positions 0-25
         // other suse old top fields ( '{|' ) in positions 26-27
