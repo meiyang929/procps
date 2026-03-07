@@ -35,6 +35,16 @@ strace and ltrace output are very helpful:
 The output of `ps --info` is often quite useful, even if the problem
 is not with ps itself. A lot of the utilities use the same library.
 
+Kernel Crash or Oops Reports
+----------------------------
+If a procps utility appears to trigger a kernel oops or panic, include
+the full kernel log around the crash (for example, `dmesg` output or
+`journalctl -k`) so that the complete backtrace and the `Code:` line are
+available. Also capture the kernel version (`uname -a`), taint status
+(`/proc/sys/kernel/tainted`), and relevant panic settings such as
+`kernel.panic_on_oops` and `kernel.panic` from `sysctl`. Include the exact
+procps command line that was running and the output of `ps --info`.
+
 Merge Requests
 --------------
 Merge requests are fine to use and give a central place for
